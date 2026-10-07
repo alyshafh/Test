@@ -7,7 +7,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>M365 Copilot Workshop — David James Estate Agents</title>
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 
@@ -44,8 +44,14 @@
     <!-- ===================== DASHBOARD ===================== -->
     <section id="view-dashboard" class="view">
       <header class="view-header">
-        <h1>Workshop Dashboard</h1>
-        <p class="subtitle">Live overview of the day — updates automatically as you capture groups, ideas and skills.</p>
+        <div>
+          <h1>Workshop Dashboard</h1>
+          <p class="subtitle">Live overview of the day — updates automatically as you capture groups, ideas and skills.</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button id="loadDemoBtn" class="btn btn-ghost">🧪 Load Demo Data</button>
+          <button id="clearDemoBtn" class="btn btn-ghost">🗑️ Clear All Data</button>
+        </div>
       </header>
 
       <div class="stat-grid">
@@ -264,6 +270,6 @@
 
 <div id="printArea" class="print-only"></div>
 
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

@@ -209,6 +209,121 @@ document.getElementById('reportBtn').addEventListener('click', () => {
   downloadFile(JSON.stringify(report, null, 2), 'copilot-workshop-full-report.json', 'application/json');
 });
 
+/* ---- Demo data seeding (for rehearsing the workshop / showing the report) ---- */
+
+function buildDemoData() {
+  const now = Date.now();
+  const iso = mins => new Date(now - mins * 60000).toISOString();
+
+  const demoGoals = [
+    'Reduce time-to-respond on new leads',
+    'Speed up property listing creation',
+    'Improve tenant/landlord communication',
+    'Cut admin time on compliance paperwork',
+    'Free up agent time for client-facing work'
+  ];
+
+  const demoGroups = [
+    { id: uid(), name: 'Sales Team', members: 'Priya, Sam, Leo, Mo', topic: 'Copilot within M365 apps', createdAt: iso(180) },
+    { id: uid(), name: 'Lettings Team', members: 'Jo, Alex, Dan', topic: 'Advanced agents & workflows (Copilot Studio)', createdAt: iso(175) },
+    { id: uid(), name: 'Admin & Compliance', members: 'Fatima, Chris', topic: 'Agents built by standard Copilot', createdAt: iso(170) },
+    { id: uid(), name: 'Marketing Team', members: 'Ellie, Noah, Ravi', topic: 'Copilot in the web', createdAt: iso(165) }
+  ];
+
+  const g = i => demoGroups[i];
+
+  const demoIdeas = [
+    {
+      id: uid(), groupId: g(0).id, groupName: g(0).name, topic: 'Copilot within M365 apps',
+      title: 'Auto-summarise viewing feedback emails', businessGoal: demoGoals[0],
+      description: 'Use Copilot in Outlook to summarise and tag viewing feedback threads so agents can follow up faster.',
+      impact: 'High impact, low effort — quick win', stage: 'idea',
+      demoPlan: '', presenter: '', projectOwner: '', projectStatus: 'Not started', projectNotes: '',
+      createdAt: iso(90)
+    },
+    {
+      id: uid(), groupId: g(3).id, groupName: g(3).name, topic: 'Copilot in the web',
+      title: 'Draft social posts from new listings', businessGoal: demoGoals[1],
+      description: 'Paste a listing description into Copilot Chat to generate ready-to-post social captions in the brand tone of voice.',
+      impact: 'Medium impact, very low effort', stage: 'idea',
+      demoPlan: '', presenter: '', projectOwner: '', projectStatus: 'Not started', projectNotes: '',
+      createdAt: iso(85)
+    },
+    {
+      id: uid(), groupId: g(2).id, groupName: g(2).name, topic: 'Agents built by standard Copilot',
+      title: 'Compliance document checklist agent', businessGoal: demoGoals[3],
+      description: 'A Copilot agent that checks a tenancy pack against the required document checklist and flags anything missing.',
+      impact: 'High impact, medium effort', stage: 'shortlisted',
+      demoPlan: 'Run the agent against a sample tenancy pack with one deliberately missing document.', presenter: 'Fatima',
+      projectOwner: '', projectStatus: 'Not started', projectNotes: '', createdAt: iso(80)
+    },
+    {
+      id: uid(), groupId: g(1).id, groupName: g(1).name, topic: 'Advanced agents & workflows (Copilot Studio)',
+      title: 'Tenant maintenance request triage agent', businessGoal: demoGoals[2],
+      description: 'A Copilot Studio agent that takes incoming maintenance requests, categorises urgency, and routes to the right contractor list.',
+      impact: 'High impact, high value — flagship idea', stage: 'live',
+      demoPlan: 'Submit 3 sample requests (urgent leak, routine repair, general query) and show correct routing.',
+      presenter: 'Jo & Dan', projectOwner: 'Jo', projectStatus: 'In progress',
+      projectNotes: 'Connector to the maintenance mailbox is working; still wiring up the contractor routing table.',
+      createdAt: iso(75)
+    },
+    {
+      id: uid(), groupId: g(0).id, groupName: g(0).name, topic: 'Application development & reporting (GitHub Copilot)',
+      title: 'Weekly lead-conversion dashboard', businessGoal: demoGoals[0],
+      description: 'A small internal reporting tool, built with GitHub Copilot assistance, pulling lead and conversion data into one weekly view for managers.',
+      impact: 'High impact, frees up manager time', stage: 'live',
+      demoPlan: 'Show the working dashboard with sample lead data and the GitHub Copilot-assisted code that built it.',
+      presenter: 'Sam', projectOwner: 'Sam', projectStatus: 'Complete',
+      projectNotes: 'Demo-ready — using sample/test data only, not live customer data.',
+      createdAt: iso(70)
+    },
+    {
+      id: uid(), groupId: g(3).id, groupName: g(3).name, topic: 'Copilot within M365 apps',
+      title: 'Monthly market report drafting in Word', businessGoal: demoGoals[4],
+      description: 'Use Copilot in Word to produce a first draft of the monthly local market report from raw notes and data.',
+      impact: 'Medium impact, low effort', stage: 'idea',
+      demoPlan: '', presenter: '', projectOwner: '', projectStatus: 'Not started', projectNotes: '',
+      createdAt: iso(65)
+    }
+  ];
+
+  const demoSkills = [
+    { id: uid(), name: 'Priya', dept: 'Sales', ratings: { 'Copilot in the web': 3, 'Copilot within M365 apps': 2, 'Agents built by standard Copilot': 1, 'Advanced agents & workflows': 1, 'Application development & reporting': 1 }, createdAt: iso(170) },
+    { id: uid(), name: '', dept: 'Lettings', ratings: { 'Copilot in the web': 2, 'Copilot within M365 apps': 3, 'Agents built by standard Copilot': 1, 'Advanced agents & workflows': 1, 'Application development & reporting': 1 }, createdAt: iso(168) },
+    { id: uid(), name: 'Fatima', dept: 'Admin & Compliance', ratings: { 'Copilot in the web': 2, 'Copilot within M365 apps': 2, 'Agents built by standard Copilot': 2, 'Advanced agents & workflows': 1, 'Application development & reporting': 1 }, createdAt: iso(166) },
+    { id: uid(), name: '', dept: 'Marketing', ratings: { 'Copilot in the web': 4, 'Copilot within M365 apps': 3, 'Agents built by standard Copilot': 2, 'Advanced agents & workflows': 1, 'Application development & reporting': 1 }, createdAt: iso(164) },
+    { id: uid(), name: 'Dan', dept: 'Lettings', ratings: { 'Copilot in the web': 3, 'Copilot within M365 apps': 3, 'Agents built by standard Copilot': 2, 'Advanced agents & workflows': 2, 'Application development & reporting': 1 }, createdAt: iso(162) },
+    { id: uid(), name: '', dept: 'Sales', ratings: { 'Copilot in the web': 2, 'Copilot within M365 apps': 2, 'Agents built by standard Copilot': 1, 'Advanced agents & workflows': 1, 'Application development & reporting': 2 }, createdAt: iso(160) }
+  ];
+
+  return { demoGoals, demoGroups, demoIdeas, demoSkills };
+}
+
+document.getElementById('loadDemoBtn').addEventListener('click', () => {
+  if ((groups.length || ideas.length || skills.length || goals.length) &&
+      !confirm('This will ADD sample David James demo data alongside anything already captured. Continue?')) return;
+
+  const demo = buildDemoData();
+  goals = [...new Set([...goals, ...demo.demoGoals])];
+  groups = [...groups, ...demo.demoGroups];
+  ideas = [...ideas, ...demo.demoIdeas];
+  skills = [...skills, ...demo.demoSkills];
+
+  save(STORE.goals, goals); save(STORE.groups, groups);
+  save(STORE.ideas, ideas); save(STORE.skills, skills);
+
+  renderDashboard(); populateGoalDatalist();
+  alert('Demo data loaded — explore the Dashboard, Ideas Board, and Live Projects sections.');
+});
+
+document.getElementById('clearDemoBtn').addEventListener('click', () => {
+  if (!confirm('This will permanently delete ALL data in this browser (goals, groups, ideas, skills). Continue?')) return;
+  goals = []; groups = []; ideas = []; skills = [];
+  save(STORE.goals, goals); save(STORE.groups, groups);
+  save(STORE.ideas, ideas); save(STORE.skills, skills);
+  renderDashboard(); populateGoalDatalist();
+});
+
 /* ============================== Agenda ============================== */
 
 function renderAgenda() {
