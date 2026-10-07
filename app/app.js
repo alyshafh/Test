@@ -194,20 +194,131 @@ document.getElementById('goalForm').addEventListener('submit', e => {
 });
 
 document.getElementById('reportBtn').addEventListener('click', () => {
-  const report = {
-    exportedAt: new Date().toISOString(),
-    businessGoals: goals,
-    groups, ideas, skills,
-    summary: {
-      groups: groups.length,
-      ideas: ideas.length,
-      shortlisted: ideas.filter(i => i.stage === 'shortlisted').length,
-      liveProjects: ideas.filter(i => i.stage === 'live').length,
-      skillResponses: skills.length
-    }
-  };
-  downloadFile(JSON.stringify(report, null, 2), 'copilot-workshop-full-report.json', 'application/json');
+  const html = buildReportHtml();
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) {
+    // Popup blocked — fall back to downloading the file instead.
+    downloadFile(html, 'copilot-workshop-report.html', 'text/html');
+    alert('Your browser blocked the pop-up, so the report downloaded as an HTML file instead — open it from your downloads.');
+  }
 });
+
+function buildReportHtml() {
+  const ideaOnly = ideas.filter(i => i.stage === 'idea');
+  const shortlisted = ideas.filter(i => i.stage === 'shortlisted');
+  const live = ideas.filter(i => i.stage === 'live');
+  const allRatings = skills.flatMap(s => Object.values(s.ratings || {}));
+  const avgConfidence = allRatings.length ? (allRatings.reduce((a, b) => a + Number(b), 0) / allRatings.length).toFixed(1) : '—';
+
+  const skillRows = SKILL_AREAS.map(area => {
+    const values = skills.map(s => Number(s.ratings?.[area] || 0)).filter(v => v > 0);
+    const avg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    return `<div class="chart-row"><span class="chart-label">${escapeHtml(area)}</span>
+      <div class="chart-track"><div class="chart-fill" style="width:${(avg / 5) * 100}%"></div></div>
+      <span class="chart-value">${values.length ? avg.toFixed(1) : '—'}</span></div>`;
+  }).join('');
+
+  const groupCard = g => `<div class="r-card">
+    <h4>${escapeHtml(g.name)}</h4>
+    ${g.topic ? `<div class="r-meta">Focus: ${escapeHtml(g.topic)}</div>` : ''}
+    ${g.members ? `<div class="r-desc">👥 ${escapeHtml(g.members)}</div>` : ''}
+  </div>`;
+
+  const ideaCard = i => `<div class="r-card">
+    <h4>${escapeHtml(i.title)}</h4>
+    <div class="r-meta">${escapeHtml(i.groupName)} &middot; ${escapeHtml(i.topic)}</div>
+    ${i.businessGoal ? `<div class="r-desc"><strong>Goal:</strong> ${escapeHtml(i.businessGoal)}</div>` : ''}
+    ${i.description ? `<div class="r-desc">${escapeHtml(i.description)}</div>` : ''}
+    ${i.impact ? `<div class="r-desc"><strong>Impact:</strong> ${escapeHtml(i.impact)}</div>` : ''}
+  </div>`;
+
+  const projectCard = i => `<div class="r-card">
+    <h4>${escapeHtml(i.title)} <span class="r-status">${escapeHtml(i.projectStatus)}</span></h4>
+    <div class="r-meta">${escapeHtml(i.groupName)} &middot; ${escapeHtml(i.topic)}</div>
+    ${i.businessGoal ? `<div class="r-desc"><strong>Goal:</strong> ${escapeHtml(i.businessGoal)}</div>` : ''}
+    <div class="r-desc"><strong>Owner:</strong> ${escapeHtml(i.projectOwner || '—')}</div>
+    <div class="r-desc"><strong>Demo plan:</strong> ${escapeHtml(i.demoPlan || '—')}</div>
+    <div class="r-desc"><strong>Presenter(s):</strong> ${escapeHtml(i.presenter || '—')}</div>
+    ${i.projectNotes ? `<div class="r-desc"><strong>Notes:</strong> ${escapeHtml(i.projectNotes)}</div>` : ''}
+  </div>`;
+
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<title>M365 Copilot Workshop — Full Report — David James Estate Agents</title>
+<style>
+  :root { --accent-purple:#7b61ff; --accent-blue:#2e9cff; --border:#e4e6ef; --text-muted:#666a85; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; margin: 0; padding: 40px; background: #f3f4f9; color: #1a1b2e; }
+  h1 { background: linear-gradient(120deg, var(--accent-purple), var(--accent-blue)); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 2px; }
+  .exported { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 28px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 30px; }
+  .stat-card { background: #fff; border-radius: 12px; padding: 16px; text-align: center; border-top: 4px solid var(--accent-purple); box-shadow: 0 2px 8px rgba(20,20,50,0.06); }
+  .stat-value { display: block; font-size: 1.7rem; font-weight: 700; }
+  .stat-label { font-size: 0.75rem; color: var(--text-muted); }
+  section.report-section { background: #fff; border-radius: 12px; padding: 22px 26px; margin-bottom: 22px; box-shadow: 0 2px 8px rgba(20,20,50,0.06); }
+  section.report-section h2 { margin-top: 0; font-size: 1.15rem; }
+  .chip-list { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: #f1edff; color: #5438c7; border-radius: 20px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; }
+  .r-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .r-card { background: #f8f8fc; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 0.85rem; }
+  .r-card h4 { margin: 0 0 4px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .r-meta { font-size: 0.72rem; color: var(--text-muted); margin-bottom: 6px; }
+  .r-desc { margin: 3px 0; }
+  .r-status { font-size: 0.65rem; background: var(--accent-blue); color: #fff; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+  .chart-row { display: grid; grid-template-columns: 220px 1fr 46px; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .chart-label { font-size: 0.82rem; font-weight: 600; }
+  .chart-track { background: #eef0f8; border-radius: 8px; height: 14px; overflow: hidden; }
+  .chart-fill { height: 100%; background: linear-gradient(120deg, var(--accent-purple), var(--accent-blue)); border-radius: 8px; }
+  .chart-value { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-align: right; }
+  .empty-msg { font-size: 0.82rem; color: #999; font-style: italic; }
+  @media print { body { background: #fff; } section.report-section, .stat-card { box-shadow: none; border: 1px solid var(--border); } }
+</style></head>
+<body>
+  <h1>M365 Copilot Workshop — Full Report</h1>
+  <div class="exported">David James Estate Agents &middot; Exported ${new Date().toLocaleString()}</div>
+
+  <div class="stat-grid">
+    <div class="stat-card"><span class="stat-value">${groups.length}</span><span class="stat-label">Groups</span></div>
+    <div class="stat-card"><span class="stat-value">${ideas.length}</span><span class="stat-label">Ideas captured</span></div>
+    <div class="stat-card"><span class="stat-value">${shortlisted.length}</span><span class="stat-label">Shortlisted</span></div>
+    <div class="stat-card"><span class="stat-value">${live.length}</span><span class="stat-label">Live projects</span></div>
+    <div class="stat-card"><span class="stat-value">${avgConfidence}</span><span class="stat-label">Avg. confidence / 5</span></div>
+  </div>
+
+  <section class="report-section">
+    <h2>🎯 Business goals</h2>
+    ${goals.length ? `<ul class="chip-list">${goals.map(g => `<li class="chip">${escapeHtml(g)}</li>`).join('')}</ul>` : '<p class="empty-msg">No business goals captured.</p>'}
+  </section>
+
+  <section class="report-section">
+    <h2>📊 Skills &amp; confidence (${skills.length} response${skills.length === 1 ? '' : 's'})</h2>
+    ${skills.length ? skillRows : '<p class="empty-msg">No skills responses captured.</p>'}
+  </section>
+
+  <section class="report-section">
+    <h2>👥 Groups</h2>
+    ${groups.length ? `<div class="r-grid">${groups.map(groupCard).join('')}</div>` : '<p class="empty-msg">No groups created.</p>'}
+  </section>
+
+  <section class="report-section">
+    <h2>💡 Ideas only</h2>
+    ${ideaOnly.length ? `<div class="r-grid">${ideaOnly.map(ideaCard).join('')}</div>` : '<p class="empty-msg">No idea-only items.</p>'}
+  </section>
+
+  <section class="report-section">
+    <h2>⭐ Shortlisted</h2>
+    ${shortlisted.length ? `<div class="r-grid">${shortlisted.map(ideaCard).join('')}</div>` : '<p class="empty-msg">Nothing shortlisted yet.</p>'}
+  </section>
+
+  <section class="report-section">
+    <h2>🚀 Live projects</h2>
+    ${live.length ? `<div class="r-grid">${live.map(projectCard).join('')}</div>` : '<p class="empty-msg">No live projects yet.</p>'}
+  </section>
+
+</body></html>`;
+}
 
 /* ---- Demo data seeding (for rehearsing the workshop / showing the report) ---- */
 
