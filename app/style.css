@@ -1,0 +1,259 @@
+:root {
+  --navy: #0b2545;
+  --accent: #1b6ef3;
+  --accent-dark: #124db0;
+  --idea-bg: #fff8e6;
+  --idea-border: #f0c050;
+  --shortlist-bg: #eaf5ec;
+  --shortlist-border: #4caf7d;
+  --bg: #f4f6f9;
+  --card-radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: #1b1f24;
+}
+
+.topbar {
+  background: var(--navy);
+  color: #fff;
+  padding: 14px 24px;
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.topbar h1 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.topbar h1 span {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn:hover { background: var(--accent-dark); }
+
+.file-btn { position: relative; }
+
+main {
+  max-width: 1300px;
+  margin: 20px auto;
+  padding: 0 20px 60px;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: #fff;
+  border-radius: var(--card-radius);
+  padding: 18px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.panel h2 { margin-top: 0; font-size: 1.1rem; color: var(--navy); }
+
+form label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+form input, form select, form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid #cdd4dc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.demo-fields {
+  border-left: 3px solid var(--shortlist-border);
+  padding-left: 10px;
+  margin-bottom: 10px;
+}
+
+.hidden { display: none; }
+
+.btn-primary {
+  width: 100%;
+  padding: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.board-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filters select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #cdd4dc;
+}
+
+.count-summary {
+  font-size: 0.8rem;
+  color: #556;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+@media (max-width: 700px) {
+  .columns { grid-template-columns: 1fr; }
+}
+
+.column h3 {
+  font-size: 0.95rem;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge {
+  background: #e3e8ee;
+  border-radius: 10px;
+  padding: 1px 9px;
+  font-size: 0.75rem;
+  color: #333;
+}
+
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 60px;
+}
+
+.idea-card {
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  position: relative;
+}
+
+.idea-card.idea {
+  background: var(--idea-bg);
+  border: 1px solid var(--idea-border);
+}
+
+.idea-card.shortlisted {
+  background: var(--shortlist-bg);
+  border: 1px solid var(--shortlist-border);
+}
+
+.idea-card h4 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.idea-card .meta {
+  font-size: 0.72rem;
+  color: #556;
+  margin-bottom: 6px;
+}
+
+.idea-card .desc { margin: 4px 0; }
+
+.idea-card .actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.idea-card .actions button {
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.idea-card .actions button.danger { color: #b00020; border-color: #b00020; }
+
+.empty-msg {
+  font-size: 0.8rem;
+  color: #888;
+  font-style: italic;
+}
+
+.print-only { display: none; }
+
+@media print {
+  header, .form-panel, .board-controls, .actions { display: none !important; }
+  body * { visibility: hidden; }
+  .print-only, .print-only * { visibility: visible; }
+  .print-only {
+    display: block;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+  }
+  .print-card {
+    page-break-after: always;
+    padding: 60px 50px;
+  }
+  .print-card h2 { color: var(--navy); font-size: 1.8rem; }
+  .print-card .print-meta { font-size: 1rem; color: #444; margin-bottom: 18px; }
+  .print-card .print-section { margin-bottom: 16px; }
+  .print-card .print-section h4 { margin-bottom: 4px; color: var(--navy); }
+}
