@@ -3,107 +3,261 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Copilot Workshop — Idea Board</title>
+<title>M365 Copilot Workshop — David James Estate Agents</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="topbar-inner">
-    <h1>M365 Copilot Workshop <span>· Idea Board</span></h1>
-    <div class="topbar-actions">
-      <button id="exportBtn" class="btn">Export JSON</button>
-      <button id="exportCsvBtn" class="btn">Export CSV</button>
-      <label class="btn file-btn">Import JSON
-        <input type="file" id="importInput" accept="application/json" hidden>
-      </label>
-      <button id="printBtn" class="btn">Print Showcase Cards</button>
-    </div>
-  </div>
-</header>
 
-<main>
-  <section class="panel form-panel">
-    <h2>Capture an idea</h2>
-    <form id="ideaForm">
-      <label>Group / Team name
-        <input type="text" id="groupName" placeholder="e.g. Lettings Team" required>
-      </label>
+<div class="app-shell">
 
-      <label>Topic
-        <select id="topic" required>
-          <option value="">Select a topic…</option>
-          <option>Copilot in the web</option>
-          <option>Copilot within M365 apps</option>
-          <option>Agents built by standard Copilot</option>
-          <option>Advanced agents &amp; workflows (Copilot Studio)</option>
-          <option>Application development &amp; reporting (GitHub Copilot)</option>
-        </select>
-      </label>
-
-      <label>Idea title
-        <input type="text" id="title" placeholder="Short, punchy name for the idea" required>
-      </label>
-
-      <label>Business goal it supports
-        <input type="text" id="businessGoal" placeholder="e.g. Faster lead response time">
-      </label>
-
-      <label>Description / how it works
-        <textarea id="description" rows="3" placeholder="What problem does it solve? How would Copilot be used?"></textarea>
-      </label>
-
-      <label>Estimated impact / effort notes
-        <input type="text" id="impact" placeholder="e.g. High impact, low effort — quick win">
-      </label>
-
-      <label>Status
-        <select id="status">
-          <option value="idea">Idea only</option>
-          <option value="shortlisted">Shortlisted — build a demo</option>
-        </select>
-      </label>
-
-      <div id="demoFields" class="demo-fields hidden">
-        <label>Demo scenario / test plan
-          <textarea id="demoPlan" rows="2" placeholder="What will be demoed? What data/steps are needed?"></textarea>
-        </label>
-        <label>Presenter(s)
-          <input type="text" id="presenter" placeholder="Who will present this at the showcase?">
-        </label>
-      </div>
-
-      <button type="submit" class="btn btn-primary">Add idea</button>
-    </form>
-  </section>
-
-  <section class="panel board-panel">
-    <div class="board-controls">
-      <h2>Ideas</h2>
-      <div class="filters">
-        <select id="filterTopic">
-          <option value="">All topics</option>
-        </select>
-        <select id="filterStatus">
-          <option value="">All statuses</option>
-          <option value="idea">Idea only</option>
-          <option value="shortlisted">Shortlisted</option>
-        </select>
-        <span id="countSummary" class="count-summary"></span>
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">◆</div>
+      <div class="brand-text">
+        <strong>M365 Copilot</strong>
+        <span>Workshop · David James</span>
       </div>
     </div>
 
-    <div class="columns">
-      <div class="column">
-        <h3>💡 Idea only <span id="ideaCount" class="badge"></span></h3>
-        <div id="ideaColumn" class="card-list"></div>
-      </div>
-      <div class="column">
-        <h3>⭐ Shortlisted — demo scenario <span id="shortlistCount" class="badge"></span></h3>
-        <div id="shortlistColumn" class="card-list"></div>
-      </div>
+    <ul class="nav-list">
+      <li><a href="#dashboard" class="nav-link" data-view="dashboard"><span class="nav-icon">🏠</span> Dashboard</a></li>
+      <li><a href="#agenda" class="nav-link" data-view="agenda"><span class="nav-icon">🗓️</span> Agenda</a></li>
+      <li><a href="#possible" class="nav-link" data-view="possible"><span class="nav-icon">✨</span> Art of the Possible</a></li>
+      <li><a href="#skills" class="nav-link" data-view="skills"><span class="nav-icon">📊</span> Skills &amp; Confidence</a></li>
+      <li><a href="#groups" class="nav-link" data-view="groups"><span class="nav-icon">👥</span> Groups</a></li>
+      <li><a href="#ideas" class="nav-link" data-view="ideas"><span class="nav-icon">💡</span> Ideas Board</a></li>
+      <li><a href="#projects" class="nav-link" data-view="projects"><span class="nav-icon">🚀</span> Live Projects</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <button id="reportBtn" class="btn btn-ghost btn-block">📄 Full Workshop Report</button>
     </div>
-  </section>
-</main>
+  </nav>
+
+  <!-- Main content -->
+  <main class="content">
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section id="view-dashboard" class="view">
+      <header class="view-header">
+        <h1>Workshop Dashboard</h1>
+        <p class="subtitle">Live overview of the day — updates automatically as you capture groups, ideas and skills.</p>
+      </header>
+
+      <div class="stat-grid">
+        <div class="stat-card accent-purple">
+          <span class="stat-value" id="statGroups">0</span>
+          <span class="stat-label">Groups</span>
+        </div>
+        <div class="stat-card accent-amber">
+          <span class="stat-value" id="statIdeas">0</span>
+          <span class="stat-label">Ideas captured</span>
+        </div>
+        <div class="stat-card accent-green">
+          <span class="stat-value" id="statShortlisted">0</span>
+          <span class="stat-label">Shortlisted</span>
+        </div>
+        <div class="stat-card accent-blue">
+          <span class="stat-value" id="statProjects">0</span>
+          <span class="stat-label">Live projects</span>
+        </div>
+        <div class="stat-card accent-pink">
+          <span class="stat-value" id="statConfidence">—</span>
+          <span class="stat-label">Avg. confidence / 5</span>
+        </div>
+      </div>
+
+      <div class="dash-columns">
+        <div class="panel">
+          <h2>🎯 Business goals</h2>
+          <p class="hint">Capture the priorities leadership shares at the start of the day. Reference these when tagging ideas.</p>
+          <form id="goalForm" class="inline-form">
+            <input type="text" id="goalInput" placeholder="e.g. Faster lead response time">
+            <button type="submit" class="btn btn-primary">Add</button>
+          </form>
+          <ul id="goalList" class="chip-list"></ul>
+        </div>
+
+        <div class="panel">
+          <h2>⚡ Recent activity</h2>
+          <div id="recentActivity" class="activity-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== AGENDA ===================== -->
+    <section id="view-agenda" class="view">
+      <header class="view-header">
+        <h1>Workshop Agenda</h1>
+        <p class="subtitle">Today's running order — ~45 attendees, five topic areas, breakouts, and a live showcase.</p>
+      </header>
+
+      <div class="timeline" id="agendaTimeline"></div>
+    </section>
+
+    <!-- ===================== ART OF THE POSSIBLE ===================== -->
+    <section id="view-possible" class="view">
+      <header class="view-header">
+        <h1>Art of the Possible</h1>
+        <p class="subtitle">Five areas we'll demo live — keep this open while presenting.</p>
+      </header>
+
+      <div class="possible-grid" id="possibleGrid"></div>
+    </section>
+
+    <!-- ===================== SKILLS & CONFIDENCE ===================== -->
+    <section id="view-skills" class="view">
+      <header class="view-header">
+        <h1>Skills &amp; Confidence</h1>
+        <p class="subtitle">Gather a quick self-rating from attendees on current Copilot use, then watch the room's confidence grow.</p>
+      </header>
+
+      <div class="dash-columns">
+        <div class="panel form-panel">
+          <h2>Add a response</h2>
+          <form id="skillForm">
+            <label>Name (optional)
+              <input type="text" id="skillName" placeholder="Anonymous if left blank">
+            </label>
+            <label>Department / Team
+              <input type="text" id="skillDept" placeholder="e.g. Lettings, Sales, Admin">
+            </label>
+
+            <div id="skillRatings"></div>
+
+            <button type="submit" class="btn btn-primary btn-block">Submit response</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Room confidence — live results</h2>
+          <p class="hint"><span id="skillRespondents">0</span> response(s) collected</p>
+          <div id="skillChart" class="chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== GROUPS ===================== -->
+    <section id="view-groups" class="view">
+      <header class="view-header">
+        <h1>Breakout Groups</h1>
+        <p class="subtitle">Set up your groups once, then select them when capturing ideas.</p>
+      </header>
+
+      <div class="dash-columns">
+        <div class="panel form-panel">
+          <h2>Create a group</h2>
+          <form id="groupForm">
+            <label>Group name
+              <input type="text" id="groupNameInput" placeholder="e.g. Lettings Team" required>
+            </label>
+            <label>Members (optional)
+              <input type="text" id="groupMembers" placeholder="e.g. Jo, Sam, Priya, Alex">
+            </label>
+            <label>Focus topic (optional)
+              <select id="groupTopic"></select>
+            </label>
+            <button type="submit" class="btn btn-primary btn-block">Add group</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Groups <span id="groupCountBadge" class="badge"></span></h2>
+          <div id="groupList" class="card-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== IDEAS BOARD ===================== -->
+    <section id="view-ideas" class="view">
+      <header class="view-header">
+        <h1>Ideas Board</h1>
+        <p class="subtitle">Capture ideas during report-backs and tag them as idea-only or shortlisted.</p>
+      </header>
+
+      <div class="dash-columns">
+        <div class="panel form-panel">
+          <h2>Capture an idea</h2>
+          <form id="ideaForm">
+            <label>Group
+              <select id="ideaGroup"></select>
+            </label>
+
+            <label>Topic
+              <select id="topic" required></select>
+            </label>
+
+            <label>Idea title
+              <input type="text" id="title" placeholder="Short, punchy name for the idea" required>
+            </label>
+
+            <label>Business goal it supports
+              <input type="text" id="businessGoal" list="goalDatalist" placeholder="e.g. Faster lead response time">
+              <datalist id="goalDatalist"></datalist>
+            </label>
+
+            <label>Description / how it works
+              <textarea id="description" rows="3" placeholder="What problem does it solve? How would Copilot be used?"></textarea>
+            </label>
+
+            <label>Estimated impact / effort notes
+              <input type="text" id="impact" placeholder="e.g. High impact, low effort — quick win">
+            </label>
+
+            <button type="submit" class="btn btn-primary btn-block">Add idea</button>
+          </form>
+        </div>
+
+        <div class="panel board-panel">
+          <div class="board-controls">
+            <h2>Ideas</h2>
+            <div class="filters">
+              <select id="filterTopic"><option value="">All topics</option></select>
+              <span id="countSummary" class="count-summary"></span>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <h3>💡 Idea only <span id="ideaCount" class="badge"></span></h3>
+              <div id="ideaColumn" class="card-list"></div>
+            </div>
+            <div class="column">
+              <h3>⭐ Shortlisted <span id="shortlistCount" class="badge"></span></h3>
+              <div id="shortlistColumn" class="card-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== LIVE PROJECTS ===================== -->
+    <section id="view-projects" class="view">
+      <header class="view-header">
+        <h1>Live Projects</h1>
+        <p class="subtitle">Shortlisted ideas that have moved into a demo/test scenario, ready for the final showcase.</p>
+        <button id="printBtn" class="btn btn-ghost">🖨️ Print Showcase Cards</button>
+      </header>
+
+      <div class="project-board" id="projectBoard">
+        <div class="project-column" data-status="Not started">
+          <h3>⏳ Not started <span class="badge" id="countNotStarted"></span></h3>
+          <div class="card-list" id="colNotStarted"></div>
+        </div>
+        <div class="project-column" data-status="In progress">
+          <h3>🔧 In progress <span class="badge" id="countInProgress"></span></h3>
+          <div class="card-list" id="colInProgress"></div>
+        </div>
+        <div class="project-column" data-status="Complete">
+          <h3>✅ Ready to showcase <span class="badge" id="countComplete"></span></h3>
+          <div class="card-list" id="colComplete"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
 
 <div id="printArea" class="print-only"></div>
 

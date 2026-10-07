@@ -1,8 +1,9 @@
-// Copilot Workshop Idea Board
-// All data is stored locally in the browser (localStorage) — no backend required.
-// Use Export/Import JSON to merge ideas captured on different facilitator devices.
+// M365 Copilot Workshop App — David James Estate Agents
+// Single-page app, vanilla JS, all data stored locally in the browser (localStorage).
+// Sections: Dashboard, Agenda, Art of the Possible, Skills & Confidence, Groups, Ideas Board, Live Projects.
 
-const STORAGE_KEY = 'copilotWorkshopIdeas';
+/* ============================== Static content ============================== */
+
 const TOPICS = [
   'Copilot in the web',
   'Copilot within M365 apps',
@@ -11,218 +12,525 @@ const TOPICS = [
   'Application development & reporting (GitHub Copilot)'
 ];
 
-let ideas = loadIdeas();
+const AGENDA = [
+  { time: '0:00 – 0:05', title: 'Welcome & framing', detail: 'Introduce the day and capture David James\'s business goals live (see Dashboard).' },
+  { time: '0:05 – 1:05', title: 'Art of the possible (1 hour, all 5 topics)', detail: 'Live demo-led tour across all five areas — roughly 12 minutes per topic.' },
+  { time: '1:05 – 1:15', title: 'Break / form breakout groups', detail: 'Mix departments where possible so ideas cross-pollinate. Set groups up in the Groups section.' },
+  { time: '1:15 – 2:15', title: 'Breakout group working session', detail: 'Groups discuss where Copilot could save time or help hit business goals.' },
+  { time: '2:15 – 2:30', title: 'Break', detail: 'Facilitator pre-loads the report-back order.' },
+  { time: '2:30 – 3:15', title: 'Group report-backs', detail: 'Each group presents 2–3 ideas. Facilitator captures every idea live in the Ideas Board, tagging Idea only or Shortlisted.' },
+  { time: '3:15 – 3:30', title: 'Shortlist confirmation', detail: 'Quick group discussion to confirm which shortlisted ideas move into Live Projects for a demo.' },
+  { time: '3:30 – 4:15', title: 'Demo scenario build time', detail: 'Groups build a lightweight test/demo for their live project.' },
+  { time: '4:15 – 4:45', title: 'Final showcase', detail: 'Each live project is demoed. Use Print Showcase Cards from the Live Projects section as presentation prompts.' },
+  { time: '4:45 – 5:00', title: 'Wrap-up & next steps', detail: 'Summarise themes, confirm follow-up owners, export the full workshop report.' }
+];
 
-const form = document.getElementById('ideaForm');
-const statusSelect = document.getElementById('status');
-const demoFields = document.getElementById('demoFields');
-const filterTopic = document.getElementById('filterTopic');
-const filterStatus = document.getElementById('filterStatus');
+const POSSIBLE = [
+  {
+    icon: '🌐', title: 'Copilot in the web',
+    desc: 'Copilot Chat at copilot.microsoft.com / Bing — research, drafting, and quick answers with no app installed.',
+    bullets: ['Drafting property listing descriptions', 'Summarising market research', 'Quick client email drafts']
+  },
+  {
+    icon: '📎', title: 'Copilot within M365 apps',
+    desc: 'Copilot embedded in Outlook, Word, Excel, Teams, and PowerPoint — working inside the tools staff already use.',
+    bullets: ['Summarising long email threads', 'Drafting board reports in Word', 'Meeting recaps & actions in Teams']
+  },
+  {
+    icon: '🤖', title: 'Agents built by standard Copilot',
+    desc: 'Lightweight, no-code agents created directly inside Copilot for a specific repeatable task.',
+    bullets: ['A viewing-feedback summariser', 'A tenant FAQ assistant', 'A listing description generator']
+  },
+  {
+    icon: '🧩', title: 'Advanced agents & workflows (Copilot Studio)',
+    desc: 'Multi-step agents with triggers, data connections, and approvals built in Copilot Studio.',
+    bullets: ['Automated maintenance request triage', 'Lead qualification workflow', 'Compliance document checks']
+  },
+  {
+    icon: '💻', title: 'Application development & reporting (GitHub Copilot)',
+    desc: 'Copilot-assisted coding and reporting — building small internal tools, scripts, and dashboards faster.',
+    bullets: ['A simple internal reporting dashboard', 'Automating a repetitive data task', 'Prototyping an internal tool']
+  }
+];
 
-TOPICS.forEach(t => {
-  const opt = document.createElement('option');
-  opt.value = t;
-  opt.textContent = t;
-  filterTopic.appendChild(opt);
-});
+const SKILL_AREAS = [
+  'Copilot in the web',
+  'Copilot within M365 apps',
+  'Agents built by standard Copilot',
+  'Advanced agents & workflows',
+  'Application development & reporting'
+];
 
-statusSelect.addEventListener('change', () => {
-  demoFields.classList.toggle('hidden', statusSelect.value !== 'shortlisted');
-});
+/* ============================== Storage helpers ============================== */
 
-form.addEventListener('submit', e => {
+const STORE = {
+  groups: 'workshop_groups',
+  ideas: 'workshop_ideas',
+  skills: 'workshop_skills',
+  goals: 'workshop_goals'
+};
+
+function load(key) {
+  try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+}
+function save(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+function uid() {
+  return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random();
+}
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---- one-time migration from the earlier single-view idea board ---- */
+(function migrateLegacyIdeas() {
+  const legacy = localStorage.getItem('copilotWorkshopIdeas');
+  if (legacy && !localStorage.getItem(STORE.ideas)) {
+    try {
+      const old = JSON.parse(legacy);
+      const migrated = old.map(i => ({
+        id: i.id || uid(),
+        groupId: null,
+        groupName: i.groupName || '',
+        topic: i.topic || '',
+        title: i.title || '',
+        businessGoal: i.businessGoal || '',
+        description: i.description || '',
+        impact: i.impact || '',
+        stage: i.status === 'shortlisted' ? 'shortlisted' : 'idea',
+        demoPlan: i.demoPlan || '',
+        presenter: i.presenter || '',
+        projectOwner: '',
+        projectStatus: 'Not started',
+        projectNotes: '',
+        createdAt: i.createdAt || new Date().toISOString()
+      }));
+      save(STORE.ideas, migrated);
+    } catch { /* ignore malformed legacy data */ }
+  }
+})();
+
+let groups = load(STORE.groups);
+let ideas = load(STORE.ideas);
+let skills = load(STORE.skills);
+let goals = load(STORE.goals);
+
+/* ============================== Router ============================== */
+
+const VIEWS = ['dashboard', 'agenda', 'possible', 'skills', 'groups', 'ideas', 'projects'];
+
+function navigate() {
+  const hash = (location.hash || '#dashboard').slice(1);
+  const view = VIEWS.includes(hash) ? hash : 'dashboard';
+
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+
+  document.querySelectorAll('.nav-link').forEach(el =>
+    el.classList.toggle('active', el.dataset.view === view));
+
+  const renderers = {
+    dashboard: renderDashboard, agenda: renderAgenda, possible: renderPossible,
+    skills: renderSkills, groups: renderGroups, ideas: renderIdeas, projects: renderProjects
+  };
+  renderers[view]();
+}
+window.addEventListener('hashchange', navigate);
+
+/* ============================== Dashboard ============================== */
+
+function renderDashboard() {
+  document.getElementById('statGroups').textContent = groups.length;
+  document.getElementById('statIdeas').textContent = ideas.length;
+  document.getElementById('statShortlisted').textContent = ideas.filter(i => i.stage === 'shortlisted').length;
+  document.getElementById('statProjects').textContent = ideas.filter(i => i.stage === 'live').length;
+
+  const allRatings = skills.flatMap(s => Object.values(s.ratings || {}));
+  const avg = allRatings.length ? (allRatings.reduce((a, b) => a + Number(b), 0) / allRatings.length) : null;
+  document.getElementById('statConfidence').textContent = avg ? avg.toFixed(1) : '—';
+
+  document.getElementById('goalList').innerHTML = goals.length
+    ? goals.map(g => `<li class="chip">${escapeHtml(g)} <button data-goal="${escapeHtml(g)}" title="Remove">✕</button></li>`).join('')
+    : '<li class="empty-msg">No business goals captured yet.</li>';
+
+  document.querySelectorAll('#goalList button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      goals = goals.filter(g => g !== btn.dataset.goal);
+      save(STORE.goals, goals);
+      renderDashboard();
+    });
+  });
+
+  const events = [
+    ...groups.map(g => ({ t: g.createdAt, text: `Group created: <strong>${escapeHtml(g.name)}</strong>` })),
+    ...ideas.map(i => ({ t: i.createdAt, text: `Idea captured: <strong>${escapeHtml(i.title)}</strong> (${escapeHtml(i.topic)})` })),
+    ...skills.map(s => ({ t: s.createdAt, text: `Skills response from ${escapeHtml(s.name || 'Anonymous')} (${escapeHtml(s.dept || 'No dept')})` }))
+  ].sort((a, b) => new Date(b.t) - new Date(a.t)).slice(0, 12);
+
+  document.getElementById('recentActivity').innerHTML = events.length
+    ? events.map(e => `<div class="activity-item">${e.text}<span class="time">${new Date(e.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>`).join('')
+    : '<p class="empty-msg">Nothing captured yet — activity will appear here as you use the app.</p>';
+}
+
+document.getElementById('goalForm').addEventListener('submit', e => {
   e.preventDefault();
-  const idea = {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
-    groupName: document.getElementById('groupName').value.trim(),
+  const input = document.getElementById('goalInput');
+  const val = input.value.trim();
+  if (!val) return;
+  goals.push(val);
+  save(STORE.goals, goals);
+  input.value = '';
+  renderDashboard();
+  populateGoalDatalist();
+});
+
+document.getElementById('reportBtn').addEventListener('click', () => {
+  const report = {
+    exportedAt: new Date().toISOString(),
+    businessGoals: goals,
+    groups, ideas, skills,
+    summary: {
+      groups: groups.length,
+      ideas: ideas.length,
+      shortlisted: ideas.filter(i => i.stage === 'shortlisted').length,
+      liveProjects: ideas.filter(i => i.stage === 'live').length,
+      skillResponses: skills.length
+    }
+  };
+  downloadFile(JSON.stringify(report, null, 2), 'copilot-workshop-full-report.json', 'application/json');
+});
+
+/* ============================== Agenda ============================== */
+
+function renderAgenda() {
+  document.getElementById('agendaTimeline').innerHTML = AGENDA.map(item => `
+    <div class="timeline-item">
+      <div class="timeline-time">${escapeHtml(item.time)}</div>
+      <div class="timeline-title">${escapeHtml(item.title)}</div>
+      <div class="timeline-detail">${escapeHtml(item.detail)}</div>
+    </div>
+  `).join('');
+}
+
+/* ============================== Art of the possible ============================== */
+
+function renderPossible() {
+  document.getElementById('possibleGrid').innerHTML = POSSIBLE.map(p => `
+    <div class="possible-card">
+      <span class="p-icon">${p.icon}</span>
+      <h3>${escapeHtml(p.title)}</h3>
+      <p>${escapeHtml(p.desc)}</p>
+      <ul>${p.bullets.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+}
+
+/* ============================== Skills & Confidence ============================== */
+
+function buildSkillRatingInputs() {
+  document.getElementById('skillRatings').innerHTML = SKILL_AREAS.map((area, idx) => `
+    <label>${escapeHtml(area)} — confidence (1 = never used it, 5 = very confident)
+      <select data-area="${idx}" required>
+        <option value="">Select…</option>
+        <option value="1">1 — Never used it</option>
+        <option value="2">2 — Rarely</option>
+        <option value="3">3 — Sometimes</option>
+        <option value="4">4 — Often</option>
+        <option value="5">5 — Very confident</option>
+      </select>
+    </label>
+  `).join('');
+}
+
+document.getElementById('skillForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const ratings = {};
+  let complete = true;
+  document.querySelectorAll('#skillRatings select').forEach(sel => {
+    const area = SKILL_AREAS[sel.dataset.area];
+    if (!sel.value) complete = false;
+    ratings[area] = Number(sel.value) || 0;
+  });
+  if (!complete) { alert('Please rate every area before submitting.'); return; }
+
+  skills.push({
+    id: uid(),
+    name: document.getElementById('skillName').value.trim(),
+    dept: document.getElementById('skillDept').value.trim(),
+    ratings,
+    createdAt: new Date().toISOString()
+  });
+  save(STORE.skills, skills);
+  e.target.reset();
+  buildSkillRatingInputs();
+  renderSkills();
+});
+
+function renderSkills() {
+  buildSkillRatingInputs();
+  document.getElementById('skillRespondents').textContent = skills.length;
+
+  document.getElementById('skillChart').innerHTML = SKILL_AREAS.map(area => {
+    const values = skills.map(s => Number(s.ratings?.[area] || 0)).filter(v => v > 0);
+    const avg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    const pct = (avg / 5) * 100;
+    return `
+      <div class="chart-row">
+        <span class="chart-label">${escapeHtml(area)}</span>
+        <div class="chart-track"><div class="chart-fill" style="width:${pct}%"></div></div>
+        <span class="chart-value">${values.length ? avg.toFixed(1) : '—'}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================== Groups ============================== */
+
+function populateTopicSelect(selectEl, includeBlank, blankLabel) {
+  selectEl.innerHTML =
+    (includeBlank ? `<option value="">${blankLabel}</option>` : '') +
+    TOPICS.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+}
+
+document.getElementById('groupForm').addEventListener('submit', e => {
+  e.preventDefault();
+  groups.push({
+    id: uid(),
+    name: document.getElementById('groupNameInput').value.trim(),
+    members: document.getElementById('groupMembers').value.trim(),
+    topic: document.getElementById('groupTopic').value,
+    createdAt: new Date().toISOString()
+  });
+  save(STORE.groups, groups);
+  e.target.reset();
+  renderGroups();
+  populateIdeaGroupSelect();
+});
+
+function renderGroups() {
+  populateTopicSelect(document.getElementById('groupTopic'), true, 'No specific topic');
+
+  document.getElementById('groupCountBadge').textContent = groups.length;
+  document.getElementById('groupList').innerHTML = groups.length ? groups.map(g => `
+    <div class="entity-card">
+      <h4>${escapeHtml(g.name)}</h4>
+      ${g.topic ? `<div class="meta">Focus: ${escapeHtml(g.topic)}</div>` : ''}
+      ${g.members ? `<div class="desc">👥 ${escapeHtml(g.members)}</div>` : ''}
+      <div class="actions">
+        <button data-action="delete-group" data-id="${g.id}" class="danger">Delete</button>
+      </div>
+    </div>
+  `).join('') : '<p class="empty-msg">No groups yet — add your breakout groups here.</p>';
+
+  document.querySelectorAll('[data-action="delete-group"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Delete this group? Ideas already linked to it will keep its name but lose the link.')) return;
+      groups = groups.filter(g => g.id !== btn.dataset.id);
+      save(STORE.groups, groups);
+      renderGroups();
+      populateIdeaGroupSelect();
+    });
+  });
+}
+
+/* ============================== Ideas Board ============================== */
+
+function populateIdeaGroupSelect() {
+  const sel = document.getElementById('ideaGroup');
+  sel.innerHTML = '<option value="">No group / General</option>' +
+    groups.map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('');
+}
+
+function populateGoalDatalist() {
+  document.getElementById('goalDatalist').innerHTML =
+    goals.map(g => `<option value="${escapeHtml(g)}">`).join('');
+}
+
+document.getElementById('ideaForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const groupId = document.getElementById('ideaGroup').value;
+  const group = groups.find(g => g.id === groupId);
+  ideas.push({
+    id: uid(),
+    groupId: groupId || null,
+    groupName: group ? group.name : 'General',
     topic: document.getElementById('topic').value,
     title: document.getElementById('title').value.trim(),
     businessGoal: document.getElementById('businessGoal').value.trim(),
     description: document.getElementById('description').value.trim(),
     impact: document.getElementById('impact').value.trim(),
-    status: statusSelect.value,
-    demoPlan: document.getElementById('demoPlan').value.trim(),
-    presenter: document.getElementById('presenter').value.trim(),
+    stage: 'idea',
+    demoPlan: '', presenter: '',
+    projectOwner: '', projectStatus: 'Not started', projectNotes: '',
     createdAt: new Date().toISOString()
-  };
-  ideas.push(idea);
-  saveIdeas();
-  render();
-  form.reset();
-  demoFields.classList.add('hidden');
+  });
+  save(STORE.ideas, ideas);
+  e.target.reset();
+  renderIdeas();
 });
 
-filterTopic.addEventListener('change', render);
-filterStatus.addEventListener('change', render);
+document.getElementById('filterTopic').addEventListener('change', renderIdeas);
 
-document.getElementById('exportBtn').addEventListener('click', () => {
-  downloadFile(JSON.stringify(ideas, null, 2), 'copilot-workshop-ideas.json', 'application/json');
-});
+function renderIdeas() {
+  populateIdeaGroupSelect();
+  populateGoalDatalist();
+  populateTopicSelect(document.getElementById('topic'), true, 'Select a topic…');
 
-document.getElementById('exportCsvBtn').addEventListener('click', () => {
-  downloadFile(toCsv(ideas), 'copilot-workshop-ideas.csv', 'text/csv');
-});
+  const filterSel = document.getElementById('filterTopic');
+  const current = filterSel.value;
+  filterSel.innerHTML = '<option value="">All topics</option>' +
+    TOPICS.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  filterSel.value = current;
 
-document.getElementById('importInput').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const imported = JSON.parse(reader.result);
-      if (!Array.isArray(imported)) throw new Error('Expected an array of ideas');
-      const existingIds = new Set(ideas.map(i => i.id));
-      const merged = imported.filter(i => !existingIds.has(i.id));
-      ideas = ideas.concat(merged);
-      saveIdeas();
-      render();
-      alert(`Imported ${merged.length} new idea(s). ${imported.length - merged.length} duplicate(s) skipped.`);
-    } catch (err) {
-      alert('Could not import file: ' + err.message);
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
-
-document.getElementById('printBtn').addEventListener('click', () => {
-  const shortlisted = ideas.filter(i => i.status === 'shortlisted');
-  if (shortlisted.length === 0) {
-    alert('No shortlisted ideas to print yet.');
-    return;
-  }
-  const printArea = document.getElementById('printArea');
-  printArea.innerHTML = shortlisted.map(i => `
-    <div class="print-card">
-      <div class="print-meta">${escapeHtml(i.groupName)} &middot; ${escapeHtml(i.topic)}</div>
-      <h2>${escapeHtml(i.title)}</h2>
-      <div class="print-section">
-        <h4>Business goal</h4>
-        <p>${escapeHtml(i.businessGoal || '—')}</p>
-      </div>
-      <div class="print-section">
-        <h4>Description</h4>
-        <p>${escapeHtml(i.description || '—')}</p>
-      </div>
-      <div class="print-section">
-        <h4>Impact / effort</h4>
-        <p>${escapeHtml(i.impact || '—')}</p>
-      </div>
-      <div class="print-section">
-        <h4>Demo scenario</h4>
-        <p>${escapeHtml(i.demoPlan || '—')}</p>
-      </div>
-      <div class="print-section">
-        <h4>Presenter(s)</h4>
-        <p>${escapeHtml(i.presenter || '—')}</p>
-      </div>
-    </div>
-  `).join('');
-  window.print();
-});
-
-function render() {
-  const topicFilter = filterTopic.value;
-  const statusFilter = filterStatus.value;
-
-  const filtered = ideas.filter(i =>
-    (!topicFilter || i.topic === topicFilter) &&
-    (!statusFilter || i.status === statusFilter)
-  );
-
-  const ideaOnly = filtered.filter(i => i.status === 'idea');
-  const shortlisted = filtered.filter(i => i.status === 'shortlisted');
+  const topicFilter = filterSel.value;
+  const visible = ideas.filter(i => i.stage !== 'live' && (!topicFilter || i.topic === topicFilter));
+  const ideaOnly = visible.filter(i => i.stage === 'idea');
+  const shortlisted = visible.filter(i => i.stage === 'shortlisted');
 
   document.getElementById('ideaCount').textContent = ideaOnly.length;
   document.getElementById('shortlistCount').textContent = shortlisted.length;
-  document.getElementById('countSummary').textContent =
-    `${filtered.length} idea(s) shown of ${ideas.length} total`;
+  document.getElementById('countSummary').textContent = `${visible.length} shown of ${ideas.length} total`;
 
   document.getElementById('ideaColumn').innerHTML = ideaOnly.length
-    ? ideaOnly.map(renderCard).join('')
-    : '<p class="empty-msg">No ideas yet.</p>';
-
+    ? ideaOnly.map(renderIdeaCard).join('') : '<p class="empty-msg">No ideas yet.</p>';
   document.getElementById('shortlistColumn').innerHTML = shortlisted.length
-    ? shortlisted.map(renderCard).join('')
-    : '<p class="empty-msg">No shortlisted ideas yet.</p>';
+    ? shortlisted.map(renderIdeaCard).join('') : '<p class="empty-msg">No shortlisted ideas yet.</p>';
 
-  document.querySelectorAll('[data-action]').forEach(btn => {
-    btn.addEventListener('click', onCardAction);
-  });
+  document.querySelectorAll('[data-idea-action]').forEach(btn => btn.addEventListener('click', onIdeaAction));
 }
 
-function renderCard(i) {
+function renderIdeaCard(i) {
   return `
-    <div class="idea-card ${i.status}">
+    <div class="entity-card idea-card ${i.stage}">
       <h4>${escapeHtml(i.title)}</h4>
       <div class="meta">${escapeHtml(i.groupName)} &middot; ${escapeHtml(i.topic)}</div>
       ${i.businessGoal ? `<div class="desc"><strong>Goal:</strong> ${escapeHtml(i.businessGoal)}</div>` : ''}
       ${i.description ? `<div class="desc">${escapeHtml(i.description)}</div>` : ''}
-      ${i.status === 'shortlisted' && i.demoPlan ? `<div class="desc"><strong>Demo:</strong> ${escapeHtml(i.demoPlan)}</div>` : ''}
-      ${i.status === 'shortlisted' && i.presenter ? `<div class="desc"><strong>Presenter:</strong> ${escapeHtml(i.presenter)}</div>` : ''}
+      ${i.impact ? `<div class="desc"><strong>Impact:</strong> ${escapeHtml(i.impact)}</div>` : ''}
       <div class="actions">
-        ${i.status === 'idea'
-          ? `<button data-action="shortlist" data-id="${i.id}">⭐ Shortlist</button>`
-          : `<button data-action="unshortlist" data-id="${i.id}">↩ Move back</button>`}
-        <button data-action="delete" data-id="${i.id}" class="danger">Delete</button>
+        ${i.stage === 'idea'
+          ? `<button data-idea-action="shortlist" data-id="${i.id}">⭐ Shortlist</button>`
+          : `<button data-idea-action="unshortlist" data-id="${i.id}">↩ Move back</button>
+             <button data-idea-action="promote" data-id="${i.id}" class="primary">🚀 Move to Live Projects</button>`}
+        <button data-idea-action="delete" data-id="${i.id}" class="danger">Delete</button>
       </div>
     </div>
   `;
 }
 
-function onCardAction(e) {
-  const { action, id } = e.target.dataset;
+function onIdeaAction(e) {
+  const { ideaAction, id } = e.target.dataset;
   const idea = ideas.find(i => i.id === id);
   if (!idea) return;
-  if (action === 'shortlist') idea.status = 'shortlisted';
-  if (action === 'unshortlist') idea.status = 'idea';
-  if (action === 'delete') {
-    if (!confirm(`Delete idea "${idea.title}"?`)) return;
+  if (ideaAction === 'shortlist') idea.stage = 'shortlisted';
+  if (ideaAction === 'unshortlist') idea.stage = 'idea';
+  if (ideaAction === 'promote') { idea.stage = 'live'; idea.projectStatus = 'Not started'; }
+  if (ideaAction === 'delete') {
+    if (!confirm(`Delete "${idea.title}"?`)) return;
     ideas = ideas.filter(i => i.id !== id);
   }
-  saveIdeas();
-  render();
+  save(STORE.ideas, ideas);
+  renderIdeas();
+  renderProjects();
+  renderDashboard();
 }
 
-function loadIdeas() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
-    return [];
+/* ============================== Live Projects ============================== */
+
+function renderProjects() {
+  const live = ideas.filter(i => i.stage === 'live');
+  const cols = { 'Not started': [], 'In progress': [], 'Complete': [] };
+  live.forEach(i => (cols[i.projectStatus] || cols['Not started']).push(i));
+
+  document.getElementById('countNotStarted').textContent = cols['Not started'].length;
+  document.getElementById('countInProgress').textContent = cols['In progress'].length;
+  document.getElementById('countComplete').textContent = cols['Complete'].length;
+
+  document.getElementById('colNotStarted').innerHTML = renderProjectCards(cols['Not started']);
+  document.getElementById('colInProgress').innerHTML = renderProjectCards(cols['In progress']);
+  document.getElementById('colComplete').innerHTML = renderProjectCards(cols['Complete']);
+
+  document.querySelectorAll('[data-project-action]').forEach(btn => btn.addEventListener('click', onProjectAction));
+}
+
+function renderProjectCards(list) {
+  if (!list.length) return '<p class="empty-msg">Nothing here yet.</p>';
+  return list.map(i => `
+    <div class="entity-card project-card">
+      <h4>${escapeHtml(i.title)}</h4>
+      <div class="meta">${escapeHtml(i.groupName)} &middot; ${escapeHtml(i.topic)}</div>
+      ${i.businessGoal ? `<div class="desc"><strong>Goal:</strong> ${escapeHtml(i.businessGoal)}</div>` : ''}
+      <div class="desc"><strong>Owner:</strong> ${escapeHtml(i.projectOwner || '—')}</div>
+      <div class="desc"><strong>Demo plan:</strong> ${escapeHtml(i.demoPlan || '—')}</div>
+      <div class="desc"><strong>Presenter:</strong> ${escapeHtml(i.presenter || '—')}</div>
+      ${i.projectNotes ? `<div class="desc"><strong>Notes:</strong> ${escapeHtml(i.projectNotes)}</div>` : ''}
+      <div class="actions">
+        <button data-project-action="edit-owner" data-id="${i.id}">Edit owner</button>
+        <button data-project-action="edit-demo" data-id="${i.id}">Edit demo plan</button>
+        <button data-project-action="edit-presenter" data-id="${i.id}">Edit presenter</button>
+        <button data-project-action="edit-notes" data-id="${i.id}">Edit notes</button>
+        ${i.projectStatus !== 'In progress' ? `<button data-project-action="set-in-progress" data-id="${i.id}" class="primary">Mark in progress</button>` : ''}
+        ${i.projectStatus !== 'Complete' ? `<button data-project-action="set-complete" data-id="${i.id}" class="primary">Mark complete</button>` : ''}
+        ${i.projectStatus !== 'Not started' ? `<button data-project-action="set-not-started" data-id="${i.id}">Reset status</button>` : ''}
+        <button data-project-action="demote" data-id="${i.id}">↩ Back to shortlist</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function onProjectAction(e) {
+  const { projectAction, id } = e.target.dataset;
+  const idea = ideas.find(i => i.id === id);
+  if (!idea) return;
+
+  const prompts = {
+    'edit-owner': ['Project owner / presenter lead:', 'projectOwner'],
+    'edit-demo': ['Demo scenario / test plan:', 'demoPlan'],
+    'edit-presenter': ['Presenter(s) for the showcase:', 'presenter'],
+    'edit-notes': ['Notes:', 'projectNotes']
+  };
+  if (prompts[projectAction]) {
+    const [label, field] = prompts[projectAction];
+    const val = prompt(label, idea[field] || '');
+    if (val !== null) idea[field] = val.trim();
   }
+  if (projectAction === 'set-in-progress') idea.projectStatus = 'In progress';
+  if (projectAction === 'set-complete') idea.projectStatus = 'Complete';
+  if (projectAction === 'set-not-started') idea.projectStatus = 'Not started';
+  if (projectAction === 'demote') idea.stage = 'shortlisted';
+
+  save(STORE.ideas, ideas);
+  renderProjects();
+  renderIdeas();
+  renderDashboard();
 }
 
-function saveIdeas() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
-}
+document.getElementById('printBtn').addEventListener('click', () => {
+  const live = ideas.filter(i => i.stage === 'live');
+  if (!live.length) { alert('No live projects to print yet.'); return; }
+  document.getElementById('printArea').innerHTML = live.map(i => `
+    <div class="print-card">
+      <div class="print-meta">${escapeHtml(i.groupName)} &middot; ${escapeHtml(i.topic)}</div>
+      <h2>${escapeHtml(i.title)}</h2>
+      <div class="print-section"><h4>Business goal</h4><p>${escapeHtml(i.businessGoal || '—')}</p></div>
+      <div class="print-section"><h4>Description</h4><p>${escapeHtml(i.description || '—')}</p></div>
+      <div class="print-section"><h4>Demo scenario</h4><p>${escapeHtml(i.demoPlan || '—')}</p></div>
+      <div class="print-section"><h4>Owner</h4><p>${escapeHtml(i.projectOwner || '—')}</p></div>
+      <div class="print-section"><h4>Presenter(s)</h4><p>${escapeHtml(i.presenter || '—')}</p></div>
+    </div>
+  `).join('');
+  window.print();
+});
 
-function downloadFile(content, filename, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+/* ============================== Init ============================== */
 
-function toCsv(items) {
-  const headers = ['groupName', 'topic', 'title', 'businessGoal', 'description', 'impact', 'status', 'demoPlan', 'presenter', 'createdAt'];
-  const rows = items.map(i => headers.map(h => csvEscape(i[h] ?? '')).join(','));
-  return [headers.join(','), ...rows].join('\n');
-}
-
-function csvEscape(val) {
-  const str = String(val).replace(/"/g, '""');
-  return /[",\n]/.test(str) ? `"${str}"` : str;
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-render();
+navigate();
